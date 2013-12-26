@@ -11,7 +11,7 @@ DECRYPTEDPATH=./secure/decrypted/
 #Dropbox Config#
 DROPBOXSCRIPT=./modules/dropbox/dropbox_uploader.sh
 DROPBOXCONFIG=./dropbox_uploader.cfg
-DBWALLETCONTAINERPATH=/
+DBWALLETCONTAINERPATH=/rajiteh/store/
 WALLETCONTAINERFILE=Backup2.dat
 #End Dropbox Config#
 
