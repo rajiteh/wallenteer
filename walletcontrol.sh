@@ -1,4 +1,8 @@
  #!/bin/bash
+if [ ! "$BASH_VERSION" ] ; then
+    echo "Please do not use sh to run this script ($0), just execute it directly using bash" 1>&2
+    exit 1
+fi
 set -e
 #ALL PATH VARIABLES SHOULD HAVE A TRAILING SLASH
 
@@ -7,16 +11,17 @@ DAEMONPATH=./daemons/
 
 #VARS
 LOOPLIMIT=5
-
+DAEMONCOUNT=0
 source "./inc.logger.sh"
 
 list_all_daemons() {
-	list=`echo ${DAEMONS}`
-	log_info "Detected daemons on this platform: $list"
+	local list=`echo ${DAEMONS}`
+	log_info "Detected $DAEMONCOUNT daemons on this platform."
+	log_info "List: $list"
 }
 is_daemon_running() {
-	daemon=$1
-	status=`pgrep ${daemon}`
+	local daemon=$1
+	local status=`pgrep ${daemon}`
 	if [ "${status:-null}" == null ]; then
 		echo 0
 	else
@@ -26,14 +31,13 @@ is_daemon_running() {
 
 
 start_daemon() {
-	daemon=$1
+	local daemon=$1
 
 	if [ "$(is_daemon_running ${daemon})" == "1" ] ; then
                 log_warn "$daemon is already running."
         	return
         fi
 
-	log_info "Trying to start $daemon..."
 	if [ -f "$daemon" ] && [ -d ".$daemon" ] ; then
 		./$daemon -datadir=.$daemon -daemon
 		if [ "$(is_daemon_running ${daemon})" == 1 ] ; then
@@ -47,9 +51,9 @@ start_daemon() {
 }
 
 stop_daemon() {
-	daemon=$1
-	loop=0
-	running=1
+	local daemon=$1
+	local loop=0
+	local running=1
 
         if [ ! "$(is_daemon_running ${daemon})" == "1" ] ; then
         	log_warn "$daemon is not running."
@@ -71,7 +75,7 @@ stop_daemon() {
 	done
 	if [ $running == 1 ]; then
 		log_warn "Force killing $daemon"
-		killall $daemon
+		killall $daemon || :
 		sleep 5
 		if [ "$(is_daemon_running ${daemon})" == "1" ]; then
 			log_warn "Cannot kill $daemon"
@@ -81,13 +85,19 @@ stop_daemon() {
 }
 
 start_all() {
+	local loop=0
 	for i in ${DAEMONS[*]}; do
+		loop=$[loop+1]
+		log_info "Starting daemon $loop/$DAEMONCOUNT ($i)..."
 		start_daemon $i
 	done
 }
 
 stop_all() {
+	local loop=0
 	for i in ${DAEMONS[*]}; do
+		loop=$[loop+1]
+		log_info "Stopping daemon $loop/$DAEMONCOUNT ($i)..."
 		stop_daemon $i
 	done
 }
@@ -95,6 +105,9 @@ stop_all() {
 
 log_info "Initializing script"
 cd $DAEMONPATH && DAEMONS=`find . -maxdepth 1 -type f -name "*d" | awk '{ sub(/\.\//,""); print }'`
+for i in ${DAEMONS[*]}; do
+	DAEMONCOUNT=$[DAEMONCOUNT+1]
+done
 list_all_daemons
 if [ "$1" == "restart" ]; then
 	log_info "Restarting all daemons."
