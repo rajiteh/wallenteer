@@ -1,6 +1,6 @@
  #!/bin/bash
 if [ ! "$BASH_VERSION" ] ; then
-    echo "Please do not use sh to run this script ($0), just execute it directly using bash" 1>&2
+    /bin/bash $0 $@
     exit 1
 fi
 set -e
