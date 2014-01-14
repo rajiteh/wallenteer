@@ -12,6 +12,8 @@ DAEMONPATH=./daemons/
 #VARS
 LOOPLIMIT=5
 DAEMONCOUNT=0
+NICEBIN=`which nice`
+NICENESS=3
 source "./inc.logger.sh"
 
 list_all_daemons() {

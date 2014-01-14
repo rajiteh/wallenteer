@@ -1,4 +1,8 @@
  #!/bin/bash
+if [ ! "$BASH_VERSION" ] ; then
+    /bin/bash $0 $@
+    exit 1
+fi
 set -e
 #ALL PATH VARIABLES SHOULD HAVE A TRAILING SLASH
 
