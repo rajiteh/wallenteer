@@ -79,7 +79,14 @@ update_all() {
 	done
 }
 
+check_folders() {
+	for i in "$@"; do
+		mkdir $i -p
+	done
+}
+
 log_info "Initializing script"
+check_folders $SOURCESPATH
 cd $SOURCESPATH && REOPOS=`find  -maxdepth 1 -type d ! -path . | awk '{ sub(/\.\//,""); print }'`
 for i in ${DAEMONS[*]}; do
 	REPOSCOUNT=$[REPOSCOUNT+1]
@@ -89,7 +96,7 @@ if [ "$1" == "update" ]; then
 	log_info "Updating all daemons."
 	update_all
 elif [ "$1" == "git" ]; then
-	if [[ -z "$2" ] || [ -z "$3" ]]; then
+	if [ -z "$2" -o -z "$3" ]; then
 		log_fatal "Incorrect number of arugments. <script> git <repo> <coin name>"
 		exit 1
 	fi
