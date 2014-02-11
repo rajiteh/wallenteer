@@ -14,6 +14,10 @@ LOOPLIMIT=5
 DAEMONCOUNT=0
 NICEBIN=`which nice`
 NICENESS=3
+
+
+
+
 source "./inc.logger.sh"
 
 list_all_daemons() {
@@ -34,13 +38,22 @@ is_daemon_running() {
 
 start_daemon() {
 	local daemon=$1
-
+	local coinname=${daemon:0:-1}
 	if [ "$(is_daemon_running ${daemon})" == "1" ] ; then
                 log_warn "$daemon is already running."
         	return
         fi
 
-	if [ -f "$daemon" ] && [ -d ".$daemon" ] ; then
+	if [ -f "$daemon" ] ; then
+		if [ ! -d ".$daemon" ] ; then
+			log_warn "Data directory for $daemon not found. Creating new configuration."
+			mkdir .$daemon
+			cat > .${daemon}/${coinname}.conf <<EOF
+rpcallowip=127.0.0.1
+rpcuser=lifestyleninetycoinrpc
+rpcpassword=***REMOVED***
+EOF
+		fi
 		./$daemon -datadir=.$daemon -daemon
 		if [ "$(is_daemon_running ${daemon})" == 1 ] ; then
 			log_info "$daemon is running."
@@ -48,7 +61,7 @@ start_daemon() {
 			log_warn "Cannot start $daemon"
 		fi
 	else
-		log_warn "Daemon $daemon or it's data dir .$daemon does not exist."
+		log_warn "Daemon $daemon does not exist."
 	fi
 }
 

@@ -29,29 +29,30 @@ get_repo_path() {
 compile_repository() {
 	local repo=$1
 	local repodir=$(get_repo_path ${repo})
+	local repod=${repo}d
 	if [ ! -d "$repodir" ] ; then
 		log_warn "$repo does not exist."
 		return
 	fi
-	log_info "Compiling $repo"
-	cd $repodir && make
+	log_info "Compiling $repo at $repodir"
+	cd $repodir && make -f makefile.unix USE_UPNP=- && cd - > /dev/null
 	log_info "Installing $repo"
-	if [ ! -f "$repodir$repo" ] ; then
+	if [ ! -f "$repodir$repod" ] ; then
 		log_warn "Could not detect binary for $repo."
 		return
 	fi
 	log_info "Copying $repo to daemons path."
-	if [ -f "$DAEMONPATH$repo" ] ; then
+	if [ -f "$DAEMONPATH$repod" ] ; then
 		log_info "$repo binary found in $DAEMONPATH. Making backup."
-		cp $DAEMONPATH$repo "$DAEMONPATH$repo$(date +%s).bak"
+		cp $DAEMONPATH$repod "$DAEMONPATH$repod$(date +%s).bak"
 	fi
-	cp $repodir$repo $DAEMONPATH$repo
+	cp $repodir$repod $DAEMONPATH$repod
 }
 
 clone_repository() {
 	local url=$1
 	local repo=$2
-	git clone $url $SOURCESPATH$repo && return 1
+	git clone $url $SOURCESPATH$repo && return 0
 }
 
 download_and_extract_repository() {
@@ -63,18 +64,22 @@ download_and_extract_repository() {
 update_repository() {
 	local repo=$1
 	local repodir=$(get_repo_path ${repo})
+	local retval=0
 	if [ ! -d "${repodir}../.git" ] ; then
 		log_warn "$repodir is not a git repository."
 		return 0
 	fi
-	cd ${repodir}../ && git checkout . && git pull && return 1
+	cd ${repodir}../
+	git checkout . && (git pull | grep -q -v 'Already up-to-date.' && retval=1) || true
+	cd - > /dev/null
+	return $retval
 }
 
 update_all() {
 	local loop=0
 	for i in ${REPOS[*]}; do
 		loop=$[loop+1]
-		log_info "Updating repository $loop/$DAEMONCOUNT ($i)..."
+		log_info "Updating repository $loop/$REPOSCOUNT ($i)..."
 		update_repository $i && compile_repository $i
 	done
 }
@@ -87,13 +92,13 @@ check_folders() {
 
 log_info "Initializing script"
 check_folders $SOURCESPATH
-cd $SOURCESPATH && REOPOS=`find  -maxdepth 1 -type d ! -path . | awk '{ sub(/\.\//,""); print }'`
-for i in ${DAEMONS[*]}; do
+cd $SOURCESPATH && REPOS=`find  -maxdepth 1 -type d ! -path . | awk '{ sub(/\.\//,""); print }'` && cd - > /dev/null
+for i in ${REPOS[*]}; do
 	REPOSCOUNT=$[REPOSCOUNT+1]
 done
 list_all_repositories
 if [ "$1" == "update" ]; then
-	log_info "Updating all daemons."
+	log_info "Updating all repositories."
 	update_all
 elif [ "$1" == "git" ]; then
 	if [ -z "$2" -o -z "$3" ]; then
@@ -102,6 +107,15 @@ elif [ "$1" == "git" ]; then
 	fi
 	log_info "Cloning git repository."
 	clone_repository $2 $3 && compile_repository $3
+elif [ "$1" == "make" ]; then
+	if [ -z "$2" ]; then
+		log_fatal "Incorrect number of arugments. <script> make <repo>"
+		exit 1
+	fi
+	log_info "Compiling repository."
+	compile_repository $2
+elif [ "$1" == "list" ]; then
+	log_info "kthxbi"
 else
 	log_fatal "Unknown action. Syntax: scriptname.sh <update|git>"
 	exit 1

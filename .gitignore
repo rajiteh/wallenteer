@@ -2,3 +2,4 @@ daemons/.*d/*
 secure/memdrive/*
 secure/decrypted/*
 dropbox_uploader.cfg
+sources/*
